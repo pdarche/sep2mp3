@@ -1,0 +1,46 @@
+#! /usr/bin/env python
+
+from bs4 import BeautifulSoup
+from HTMLParser import HTMLParser
+from subprocess import call
+import requests
+import argparse
+
+
+class MLStripper(HTMLParser):
+    def __init__(self):
+        self.reset()
+        self.fed = []
+    def handle_data(self, d):
+        self.fed.append(d)
+    def get_data(self):
+        return ''.join(self.fed)
+
+
+def strip_tags(html):
+    s = MLStripper()
+    s.feed(html)
+    return s.get_data()
+
+
+def main():
+    # parse the args
+    parser = argparse.ArgumentParser()
+    parser.add_argument('url')
+    parser.add_argument('-o')
+    args = parser.parse_args()
+    outfile = args.o
+    url = args.url
+    # fetch the page and convert it to text
+    res = requests.get(url)
+    soup = BeautifulSoup(res.text)
+    content = soup.findAll('div', id='article-content')[0]
+    article = strip_tags(content.get_text()).encode('utf-8')
+    # write the mp3
+    call(['say', '-o', outfile, article])
+    # call(['ffmpeg', '-i', outfile + '.aiff', outfile + '.mp3'])
+    # call(['rm', outfile + '.aiff'])
+
+if __name__ == '__main__':
+    main()
+
